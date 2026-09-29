@@ -1,632 +1,1381 @@
-const params = new URLSearchParams(
-  window.location.search
-);
+// ============================================================
+// MIDO BUILDER — MAIN EDITOR
+// ============================================================
 
-const projectIndex =
-  Number(params.get("project"));
+(() => {
+  "use strict";
 
-const STORAGE_KEY =
-  "mido-builder-projects";
+  // ----------------------------------------------------------
+  // PROJECT LOADING
+  // ----------------------------------------------------------
 
-let projects = JSON.parse(
-  localStorage.getItem(STORAGE_KEY) || "[]"
-);
+  const STORAGE_KEY = "mido-builder-projects";
 
-let project =
-  projects[projectIndex];
-
-let selectedIndex = null;
-
-
-// -------------------------
-// ELEMENTS
-// -------------------------
-
-const canvas =
-  document.querySelector("#canvas");
-
-const emptyCanvas =
-  document.querySelector("#emptyCanvas");
-
-const propertyPanel =
-  document.querySelector("#propertyPanel");
-
-const propertyText =
-  document.querySelector("#propertyText");
-
-const propertySize =
-  document.querySelector("#propertySize");
-
-const projectTitle =
-  document.querySelector("#projectTitle");
-
-
-// -------------------------
-// FALLBACK PROJECT
-// -------------------------
-
-if (!project) {
-
-  project = {
-    name: "My Project",
-    components: []
-  };
-
-  projectIndex = 0;
-
-  projects.push(project);
-
-}
-
-
-// -------------------------
-// PROJECT TITLE
-// -------------------------
-
-projectTitle.textContent =
-  project.name;
-
-
-// -------------------------
-// SAVE
-// -------------------------
-
-function saveProject() {
-
-  projects[projectIndex] =
-    project;
-
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(projects)
+  const params = new URLSearchParams(
+    window.location.search
   );
 
-  showToast("Project saved");
+  let projectIndex = Number(
+    params.get("project")
+  );
 
-}
-
-
-// -------------------------
-// TOAST
-// -------------------------
-
-function showToast(message) {
-
-  let toast =
-    document.querySelector("#toast");
-
-  if (!toast) {
-
-    toast =
-      document.createElement("div");
-
-    toast.id = "toast";
-    toast.className = "toast";
-
-    document.body.appendChild(toast);
-
+  if (!Number.isInteger(projectIndex) || projectIndex < 0) {
+    projectIndex = 0;
   }
 
-  toast.textContent =
-    message;
+  let projects =
+    window.MidoStorage?.get(
+      STORAGE_KEY,
+      []
+    ) || [];
 
-  toast.classList.add("show");
+  if (!Array.isArray(projects)) {
+    projects = [];
+  }
 
-  setTimeout(() => {
+  let project = projects[projectIndex];
 
-    toast.classList.remove("show");
+  // ----------------------------------------------------------
+  // CREATE FALLBACK PROJECT
+  // ----------------------------------------------------------
 
-  }, 1600);
+  if (!project) {
+    project = {
+      version: 1,
+      name: "My Project",
+      components: [],
+      pages: [],
+      created: Date.now(),
+      updated: Date.now()
+    };
 
-}
+    projects.push(project);
+    projectIndex = projects.length - 1;
+  }
 
+  // Make sure old projects have the fields we need.
+  project.components =
+    Array.isArray(project.components)
+      ? project.components
+      : [];
 
-// -------------------------
-// ADD COMPONENT
-// -------------------------
+  project.pages =
+    Array.isArray(project.pages)
+      ? project.pages
+      : [];
 
-function addComponent(type) {
+  // ----------------------------------------------------------
+  // ELEMENTS
+  // ----------------------------------------------------------
 
-  const component = {
+  const canvas =
+    document.querySelector("#canvas");
 
-    type: type,
+  const emptyCanvas =
+    document.querySelector("#emptyCanvas");
 
-    text:
-      type === "text"
-        ? "Hello from Mido Builder"
-        : type === "button"
-        ? "Click Me"
-        : type === "image"
-        ? "Image"
-        : "Card",
+  const propertyPanel =
+    document.querySelector("#propertyPanel");
 
-    size:
-      type === "text"
-        ? 20
-        : 18
+  const propertyText =
+    document.querySelector("#propertyText");
 
-  };
+  const propertySize =
+    document.querySelector("#propertySize");
 
+  const projectTitle =
+    document.querySelector("#projectTitle");
 
-  project.components.push(
-    component
-  );
+  const runModal =
+    document.querySelector("#runModal");
 
+  const previewCanvas =
+    document.querySelector("#previewCanvas");
 
-  selectedIndex =
-    project.components.length - 1;
+  // ----------------------------------------------------------
+  // STATE
+  // ----------------------------------------------------------
 
+  let selectedIndex = null;
 
-  render();
+  // ----------------------------------------------------------
+  // TOAST
+  // ----------------------------------------------------------
 
-  saveProject();
+  function showToast(message) {
+    let toast =
+      document.querySelector("#toast");
 
-}
+    if (!toast) {
+      toast =
+        document.createElement("div");
 
+      toast.id = "toast";
+      toast.className = "toast";
 
-// -------------------------
-// RENDER
-// -------------------------
+      document.body.appendChild(toast);
+    }
 
-function render() {
+    toast.textContent = message;
 
-  canvas
-    .querySelectorAll(".canvas-component")
-    .forEach(element => {
+    toast.classList.add("show");
 
-      element.remove();
+    clearTimeout(
+      showToast.timer
+    );
 
-    });
+    showToast.timer =
+      setTimeout(() => {
+        toast.classList.remove("show");
+      }, 1600);
+  }
 
+  // ----------------------------------------------------------
+  // SAVE PROJECT
+  // ----------------------------------------------------------
 
-  emptyCanvas.style.display =
-    project.components.length
-      ? "none"
-      : "grid";
+  function saveProject(showMessage = true) {
 
+    project.updated = Date.now();
 
-  project.components.forEach(
-    (component, index) => {
-
-      const element =
-        createElement(
-          component,
-          index
+    // Normalize through the project system if available.
+    if (
+      window.MidoProjectFormat?.normalize
+    ) {
+      project =
+        window.MidoProjectFormat.normalize(
+          project
         );
+    }
 
-      canvas.appendChild(
-        element
+    projects[projectIndex] =
+      project;
+
+    if (window.MidoStorage) {
+
+      window.MidoStorage.set(
+        STORAGE_KEY,
+        projects
+      );
+
+    } else {
+
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(projects)
       );
 
     }
-  );
 
-
-  updateProperties();
-
-}
-
-
-// -------------------------
-// CREATE CANVAS ELEMENT
-// -------------------------
-
-function createElement(
-  component,
-  index
-) {
-
-  const wrapper =
-    document.createElement("div");
-
-  wrapper.className =
-    "canvas-component";
-
-
-  if (selectedIndex === index) {
-
-    wrapper.classList.add(
-      "selected"
-    );
-
+    if (showMessage) {
+      showToast("Project saved");
+    }
   }
 
+  // ----------------------------------------------------------
+  // PROJECT TITLE
+  // ----------------------------------------------------------
 
-  wrapper.dataset.index =
-    index;
+  function updateProjectTitle() {
 
+    if (!projectTitle) return;
 
-  if (component.type === "text") {
-
-    const text =
-      document.createElement("div");
-
-    text.textContent =
-      component.text;
-
-    text.style.fontSize =
-      component.size + "px";
-
-    text.style.fontWeight =
-      "700";
-
-    wrapper.appendChild(
-      text
-    );
-
+    projectTitle.textContent =
+      project.name ||
+      "Untitled Project";
   }
 
+  // ----------------------------------------------------------
+  // COMPONENT CREATION
+  // ----------------------------------------------------------
 
-  else if (
-    component.type === "button"
-  ) {
+  function createComponent(type) {
 
-    const button =
-      document.createElement("button");
+    // Use the central component system.
+    if (
+      window.MidoComponents?.create
+    ) {
+      return window.MidoComponents.create(
+        type
+      );
+    }
 
-    button.className =
-      "canvas-button";
+    // Fallback for safety.
+    const defaults = {
 
-    button.textContent =
-      component.text;
+      text: {
+        text: "Hello from Mido Builder",
+        size: 20
+      },
 
-    button.style.fontSize =
-      component.size + "px";
+      button: {
+        text: "Click Me",
+        size: 18
+      },
 
-    wrapper.appendChild(
-      button
-    );
+      image: {
+        text: "Image",
+        size: 18
+      },
 
-  }
+      card: {
+        text: "Card content",
+        size: 18
+      },
 
+      input: {
+        text: "Enter text...",
+        size: 16
+      },
 
-  else if (
-    component.type === "image"
-  ) {
-
-    const image =
-      document.createElement("div");
-
-    image.style.height =
-      "160px";
-
-    image.style.borderRadius =
-      "12px";
-
-    image.style.background =
-      "linear-gradient(135deg,#d9dde5,#f5f6f8)";
-
-    image.style.display =
-      "grid";
-
-    image.style.placeItems =
-      "center";
-
-    image.style.fontSize =
-      "40px";
-
-    image.textContent =
-      "▧";
-
-    wrapper.appendChild(
-      image
-    );
-
-  }
-
-
-  else if (
-    component.type === "card"
-  ) {
-
-    const card =
-      document.createElement("div");
-
-    card.className =
-      "canvas-card";
-
-    card.textContent =
-      component.text;
-
-    card.style.fontSize =
-      component.size + "px";
-
-    wrapper.appendChild(
-      card
-    );
-
-  }
-
-
-  wrapper.onclick =
-    event => {
-
-      event.stopPropagation();
-
-      selectedIndex =
-        index;
-
-      render();
+      heading: {
+        text: "Heading",
+        size: 28
+      }
 
     };
 
+    return {
+      id:
+        String(
+          Date.now() +
+          Math.random()
+        ),
 
-  return wrapper;
+      type,
 
-}
-
-
-// -------------------------
-// PROPERTIES
-// -------------------------
-
-function updateProperties() {
-
-  if (
-    selectedIndex === null ||
-    !project.components[
-      selectedIndex
-    ]
-  ) {
-
-    propertyPanel
-      .classList.add(
-        "hidden"
-      );
-
-    return;
-
+      ...(defaults[type] ||
+        defaults.text)
+    };
   }
 
+  // ----------------------------------------------------------
+  // ADD COMPONENT
+  // ----------------------------------------------------------
 
-  const component =
-    project.components[
-      selectedIndex
-    ];
+  function addComponent(type) {
 
+    const component =
+      createComponent(type);
 
-  propertyPanel
-    .classList.remove(
-      "hidden"
+    project.components.push(
+      component
     );
-
-
-  propertyText.value =
-    component.text || "";
-
-
-  propertySize.value =
-    component.size || 18;
-
-}
-
-
-// -------------------------
-// EDIT TEXT
-// -------------------------
-
-propertyText.oninput =
-  () => {
-
-    if (
-      selectedIndex === null
-    ) return;
-
-
-    project.components[
-      selectedIndex
-    ].text =
-      propertyText.value;
-
-
-    render();
-
-};
-
-
-// -------------------------
-// EDIT SIZE
-// -------------------------
-
-propertySize.oninput =
-  () => {
-
-    if (
-      selectedIndex === null
-    ) return;
-
-
-    project.components[
-      selectedIndex
-    ].size =
-      Number(
-        propertySize.value
-      ) || 18;
-
-
-    render();
-
-};
-
-
-// -------------------------
-// DELETE
-// -------------------------
-
-document
-  .querySelector(
-    "#deleteComponent"
-  )
-  .onclick = () => {
-
-    if (
-      selectedIndex === null
-    ) return;
-
-
-    project.components.splice(
-      selectedIndex,
-      1
-    );
-
 
     selectedIndex =
-      null;
+      project.components.length - 1;
 
-
-    saveProject();
+    saveProject(false);
 
     render();
 
     showToast(
-      "Component deleted"
+      type.charAt(0).toUpperCase() +
+      type.slice(1) +
+      " added"
     );
+  }
 
-};
+  // ----------------------------------------------------------
+  // CREATE CANVAS ELEMENT
+  // ----------------------------------------------------------
 
+  function createElement(
+    component,
+    index,
+    interactive = true
+  ) {
 
-// -------------------------
-// COMPONENT BUTTONS
-// -------------------------
+    const wrapper =
+      document.createElement("div");
 
-document
-  .querySelectorAll(
-    "[data-add]"
-  )
-  .forEach(button => {
+    wrapper.className =
+      "canvas-component";
 
-    button.onclick = () => {
-
-      addComponent(
-        button.dataset.add
+    if (
+      selectedIndex === index &&
+      interactive
+    ) {
+      wrapper.classList.add(
+        "selected"
       );
+    }
 
-    };
+    wrapper.dataset.index =
+      index;
 
-  });
+    // --------------------------------------------------------
+    // TEXT
+    // --------------------------------------------------------
 
+    if (
+      component.type === "text" ||
+      component.type === "heading"
+    ) {
 
-// -------------------------
-// SAVE BUTTON
-// -------------------------
+      const text =
+        document.createElement("div");
 
-document
-  .querySelector(
-    "#saveProject"
-  )
-  .onclick = () => {
+      text.textContent =
+        component.text ||
+        "";
 
-    saveProject();
+      text.style.fontSize =
+        (
+          component.size ||
+          (
+            component.type === "heading"
+              ? 28
+              : 18
+          )
+        ) + "px";
 
-};
+      text.style.fontWeight =
+        component.type === "heading"
+          ? "800"
+          : "700";
 
+      if (component.color) {
+        text.style.color =
+          component.color;
+      }
 
-// -------------------------
-// BACK BUTTON
-// -------------------------
+      wrapper.appendChild(text);
+    }
 
-document
-  .querySelector(
-    "#back"
-  )
-  .onclick = () => {
+    // --------------------------------------------------------
+    // BUTTON
+    // --------------------------------------------------------
 
-    window.location.href =
-      "index.html";
+    else if (
+      component.type === "button"
+    ) {
 
-};
+      const button =
+        document.createElement("button");
 
+      button.className =
+        "canvas-button";
 
-// -------------------------
-// RUN PREVIEW
-// -------------------------
+      button.textContent =
+        component.text ||
+        "Click Me";
 
-document
-  .querySelector(
-    "#runProject"
-  )
-  .onclick = () => {
+      button.style.fontSize =
+        (
+          component.size ||
+          18
+        ) + "px";
 
-    const preview =
-      document.querySelector(
-        "#previewCanvas"
+      if (component.color) {
+        button.style.background =
+          component.color;
+      }
+
+      // Don't trigger editor selection
+      // when clicking the actual button.
+      if (interactive) {
+
+        button.onclick =
+          event => {
+
+            event.stopPropagation();
+
+            if (
+              component.action
+            ) {
+
+              window.MidoActions?.run(
+                component.action,
+                {
+                  project,
+                  component
+                }
+              );
+
+              return;
+            }
+
+            showToast(
+              "Button clicked"
+            );
+
+          };
+      }
+    }
+
+    // --------------------------------------------------------
+    // IMAGE
+    // --------------------------------------------------------
+
+    else if (
+      component.type === "image"
+    ) {
+
+      if (component.src) {
+
+        const image =
+          document.createElement("img");
+
+        image.src =
+          component.src;
+
+        image.alt =
+          component.text ||
+          "Image";
+
+        image.style.width =
+          "100%";
+
+        image.style.maxHeight =
+          "220px";
+
+        image.style.objectFit =
+          "cover";
+
+        image.style.borderRadius =
+          "12px";
+
+        wrapper.appendChild(
+          image
+        );
+
+      } else {
+
+        const image =
+          document.createElement("div");
+
+        image.style.height =
+          "160px";
+
+        image.style.borderRadius =
+          "12px";
+
+        image.style.background =
+          "linear-gradient(135deg,#d9dde5,#f5f6f8)";
+
+        image.style.display =
+          "grid";
+
+        image.style.placeItems =
+          "center";
+
+        image.style.fontSize =
+          "40px";
+
+        image.textContent =
+          "▧";
+
+        wrapper.appendChild(
+          image
+        );
+      }
+    }
+
+    // --------------------------------------------------------
+    // CARD
+    // --------------------------------------------------------
+
+    else if (
+      component.type === "card"
+    ) {
+
+      const card =
+        document.createElement("div");
+
+      card.className =
+        "canvas-card";
+
+      card.textContent =
+        component.text ||
+        "Card content";
+
+      card.style.fontSize =
+        (
+          component.size ||
+          18
+        ) + "px";
+
+      if (component.color) {
+        card.style.borderColor =
+          component.color;
+      }
+
+      wrapper.appendChild(
+        card
       );
+    }
 
+    // --------------------------------------------------------
+    // INPUT
+    // --------------------------------------------------------
 
-    preview.innerHTML = "";
+    else if (
+      component.type === "input"
+    ) {
 
+      const input =
+        document.createElement("input");
+
+      input.type =
+        "text";
+
+      input.placeholder =
+        component.text ||
+        "Enter text...";
+
+      input.style.width =
+        "100%";
+
+      input.style.padding =
+        "12px";
+
+      input.style.fontSize =
+        (
+          component.size ||
+          16
+        ) + "px";
+
+      input.style.border =
+        "1px solid #ccd1d9";
+
+      input.style.borderRadius =
+        "8px";
+
+      wrapper.appendChild(
+        input
+      );
+    }
+
+    // --------------------------------------------------------
+    // UNKNOWN COMPONENT
+    // --------------------------------------------------------
+
+    else {
+
+      const element =
+        document.createElement("div");
+
+      element.textContent =
+        component.text ||
+        component.type ||
+        "Component";
+
+      element.style.fontSize =
+        (
+          component.size ||
+          18
+        ) + "px";
+
+      wrapper.appendChild(
+        element
+      );
+    }
+
+    // --------------------------------------------------------
+    // SELECT COMPONENT
+    // --------------------------------------------------------
+
+    if (interactive) {
+
+      wrapper.onclick =
+        event => {
+
+          event.stopPropagation();
+
+          selectedIndex =
+            index;
+
+          render();
+
+        };
+    }
+
+    return wrapper;
+  }
+
+  // ----------------------------------------------------------
+  // RENDER CANVAS
+  // ----------------------------------------------------------
+
+  function render() {
+
+    if (!canvas) return;
+
+    canvas
+      .querySelectorAll(
+        ".canvas-component"
+      )
+      .forEach(element => {
+        element.remove();
+      });
+
+    if (emptyCanvas) {
+
+      emptyCanvas.style.display =
+        project.components.length
+          ? "none"
+          : "grid";
+    }
 
     project.components.forEach(
-      component => {
+      (component, index) => {
 
         const element =
           createElement(
             component,
-            -1
+            index,
+            true
           );
 
-
-        element.classList.remove(
-          "selected"
-        );
-
-
-        preview.appendChild(
+        canvas.appendChild(
           element
         );
-
       }
     );
 
+    updateProperties();
 
-    document
-      .querySelector(
-        "#runModal"
+    // Enable drag-and-drop after
+    // every canvas rebuild.
+    if (
+      window.MidoDragDrop?.enable
+    ) {
+      window.MidoDragDrop.enable();
+    }
+
+    // Let other builder systems know
+    // the canvas changed.
+    document.dispatchEvent(
+      new CustomEvent(
+        "mido:render",
+        {
+          detail: {
+            project
+          }
+        }
       )
-      .classList.remove(
+    );
+  }
+
+  // ----------------------------------------------------------
+  // PROPERTIES
+  // ----------------------------------------------------------
+
+  function updateProperties() {
+
+    if (
+      selectedIndex === null ||
+      !project.components[
+        selectedIndex
+      ]
+    ) {
+
+      propertyPanel?.classList.add(
         "hidden"
       );
 
-};
+      return;
+    }
 
+    const component =
+      project.components[
+        selectedIndex
+      ];
 
-// -------------------------
-// CLOSE PREVIEW
-// -------------------------
+    propertyPanel?.classList.remove(
+      "hidden"
+    );
 
-document
-  .querySelector(
-    "#closeRun"
-  )
-  .onclick = () => {
+    if (propertyText) {
 
-    document
-      .querySelector(
-        "#runModal"
-      )
-      .classList.add(
-        "hidden"
+      propertyText.value =
+        component.text ||
+        "";
+    }
+
+    if (propertySize) {
+
+      propertySize.value =
+        component.size ||
+        18;
+    }
+  }
+
+  // ----------------------------------------------------------
+  // PROPERTY TEXT
+  // ----------------------------------------------------------
+
+  if (propertyText) {
+
+    propertyText.oninput =
+      () => {
+
+        if (
+          selectedIndex === null
+        ) {
+          return;
+        }
+
+        const component =
+          project.components[
+            selectedIndex
+          ];
+
+        if (!component) return;
+
+        component.text =
+          propertyText.value;
+
+        saveProject(false);
+
+        render();
+      };
+  }
+
+  // ----------------------------------------------------------
+  // PROPERTY SIZE
+  // ----------------------------------------------------------
+
+  if (propertySize) {
+
+    propertySize.oninput =
+      () => {
+
+        if (
+          selectedIndex === null
+        ) {
+          return;
+        }
+
+        const component =
+          project.components[
+            selectedIndex
+          ];
+
+        if (!component) return;
+
+        component.size =
+          Number(
+            propertySize.value
+          ) || 18;
+
+        saveProject(false);
+
+        render();
+      };
+  }
+
+  // ----------------------------------------------------------
+  // DELETE COMPONENT
+  // ----------------------------------------------------------
+
+  const deleteButton =
+    document.querySelector(
+      "#deleteComponent"
+    );
+
+  if (deleteButton) {
+
+    deleteButton.onclick =
+      () => {
+
+        if (
+          selectedIndex === null
+        ) {
+          return;
+        }
+
+        project.components.splice(
+          selectedIndex,
+          1
+        );
+
+        selectedIndex =
+          null;
+
+        saveProject(false);
+
+        render();
+
+        showToast(
+          "Component deleted"
+        );
+      };
+  }
+
+  // ----------------------------------------------------------
+  // ADD COMPONENT BUTTONS
+  // ----------------------------------------------------------
+
+  document
+    .querySelectorAll(
+      "[data-add]"
+    )
+    .forEach(button => {
+
+      button.onclick =
+        () => {
+
+          const type =
+            button.dataset.add;
+
+          if (!type) return;
+
+          addComponent(type);
+        };
+    });
+
+  // ----------------------------------------------------------
+  // SAVE BUTTON
+  // ----------------------------------------------------------
+
+  const saveButton =
+    document.querySelector(
+      "#saveProject"
+    );
+
+  if (saveButton) {
+
+    saveButton.onclick =
+      () => {
+
+        saveProject(true);
+      };
+  }
+
+  // ----------------------------------------------------------
+  // BACK BUTTON
+  // ----------------------------------------------------------
+
+  const backButton =
+    document.querySelector(
+      "#back"
+    );
+
+  if (backButton) {
+
+    backButton.onclick =
+      () => {
+
+        window.location.href =
+          "index.html";
+      };
+  }
+
+  // ----------------------------------------------------------
+  // RUN PROJECT
+  // ----------------------------------------------------------
+
+  const runButton =
+    document.querySelector(
+      "#runProject"
+    );
+
+  if (runButton) {
+
+    runButton.onclick =
+      () => {
+
+        if (!previewCanvas) {
+          return;
+        }
+
+        // Prefer the shared preview system.
+        if (
+          window.MidoRuntime?.mount
+        ) {
+
+          window.MidoRuntime.mount(
+            project,
+            previewCanvas
+          );
+
+        } else if (
+          window.MidoPreview?.render
+        ) {
+
+          window.MidoPreview.render(
+            project.components,
+            previewCanvas
+          );
+
+        } else {
+
+          previewCanvas.innerHTML =
+            "";
+
+          project.components.forEach(
+            component => {
+
+              const element =
+                createElement(
+                  component,
+                  -1,
+                  false
+                );
+
+              element.classList.remove(
+                "selected"
+              );
+
+              previewCanvas.appendChild(
+                element
+              );
+            }
+          );
+        }
+
+        runModal?.classList.remove(
+          "hidden"
+        );
+      };
+  }
+
+  // ----------------------------------------------------------
+  // CLOSE RUN PREVIEW
+  // ----------------------------------------------------------
+
+  const closeRun =
+    document.querySelector(
+      "#closeRun"
+    );
+
+  if (closeRun) {
+
+    closeRun.onclick =
+      () => {
+
+        runModal?.classList.add(
+          "hidden"
+        );
+      };
+  }
+
+  // ----------------------------------------------------------
+  // CLOSE MODAL WHEN CLICKING OUTSIDE
+  // ----------------------------------------------------------
+
+  if (runModal) {
+
+    runModal.onclick =
+      event => {
+
+        if (
+          event.target ===
+          runModal
+        ) {
+
+          runModal.classList.add(
+            "hidden"
+          );
+        }
+      };
+  }
+
+  // ----------------------------------------------------------
+  // ESCAPE CLOSES PREVIEW
+  // ----------------------------------------------------------
+
+  document.addEventListener(
+    "keydown",
+    event => {
+
+      if (
+        event.key === "Escape" &&
+        runModal &&
+        !runModal.classList.contains(
+          "hidden"
+        )
+      ) {
+
+        runModal.classList.add(
+          "hidden"
+        );
+      }
+    }
+  );
+
+  // ----------------------------------------------------------
+  // IMAGE UPLOAD
+  // ----------------------------------------------------------
+
+  document.addEventListener(
+    "mido:image-upload",
+    event => {
+
+      const data =
+        event.detail;
+
+      if (
+        selectedIndex === null ||
+        !data
+      ) {
+        return;
+      }
+
+      const component =
+        project.components[
+          selectedIndex
+        ];
+
+      if (!component) return;
+
+      if (data.data) {
+
+        component.src =
+          data.data;
+      }
+
+      if (data.file?.name) {
+
+        component.text =
+          data.file.name;
+      }
+
+      saveProject(false);
+
+      render();
+
+      showToast(
+        "Image added"
+      );
+    }
+  );
+
+  // ----------------------------------------------------------
+  // DRAG REORDER
+  // ----------------------------------------------------------
+
+  document.addEventListener(
+    "mido:reorder",
+    event => {
+
+      const from =
+        event.detail?.from;
+
+      const to =
+        event.detail?.to;
+
+      if (
+        !Number.isInteger(from) ||
+        !Number.isInteger(to)
+      ) {
+        return;
+      }
+
+      if (
+        from < 0 ||
+        to < 0 ||
+        from >= project.components.length ||
+        to >= project.components.length
+      ) {
+        return;
+      }
+
+      const moved =
+        project.components.splice(
+          from,
+          1
+        )[0];
+
+      project.components.splice(
+        to,
+        0,
+        moved
       );
 
-};
+      selectedIndex =
+        to;
 
+      saveProject(false);
 
-// -------------------------
-// CANVAS CLICK
-// -------------------------
+      render();
+    }
+  );
 
-canvas.onclick = () => {
+  // ----------------------------------------------------------
+  // EXTERNAL SELECTION
+  // ----------------------------------------------------------
 
-  selectedIndex =
-    null;
+  document.addEventListener(
+    "mido:select",
+    event => {
+
+      const index =
+        event.detail?.index;
+
+      if (
+        Number.isInteger(index) &&
+        project.components[index]
+      ) {
+
+        selectedIndex =
+          index;
+
+        render();
+      }
+    }
+  );
+
+  // ----------------------------------------------------------
+  // NAVIGATION EVENTS
+  // ----------------------------------------------------------
+
+  document.addEventListener(
+    "mido:navigate",
+    event => {
+
+      const page =
+        event.detail?.page;
+
+      if (!page) return;
+
+      showToast(
+        "Navigate → " + page
+      );
+    }
+  );
+
+  // ----------------------------------------------------------
+  // IMAGE TOOL BUTTON
+  // ----------------------------------------------------------
+
+  document
+    .querySelectorAll(
+      '[data-add="image"]'
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "dblclick",
+        () => {
+
+          if (
+            selectedIndex === null
+          ) {
+            showToast(
+              "Select an image first"
+            );
+
+            return;
+          }
+
+          if (
+            window.MidoImageUpload?.open
+          ) {
+
+            window.MidoImageUpload.open(
+              data => {
+
+                const component =
+                  project.components[
+                    selectedIndex
+                  ];
+
+                if (!component) {
+                  return;
+                }
+
+                component.src =
+                  data.data;
+
+                component.text =
+                  data.file?.name ||
+                  "Image";
+
+                saveProject(false);
+
+                render();
+
+                showToast(
+                  "Image uploaded"
+                );
+              }
+            );
+          }
+        }
+      );
+    });
+
+  // ----------------------------------------------------------
+  // EXPORT PROJECT
+  // ----------------------------------------------------------
+
+  document.addEventListener(
+    "mido:export",
+    event => {
+
+      const format =
+        event.detail?.format ||
+        "json";
+
+      if (
+        format === "html" &&
+        window.MidoExport?.html
+      ) {
+
+        window.MidoExport.html(
+          project
+        );
+
+        showToast(
+          "HTML exported"
+        );
+
+        return;
+      }
+
+      if (
+        window.MidoExport?.json
+      ) {
+
+        window.MidoExport.json(
+          project
+        );
+
+        showToast(
+          "Project exported"
+        );
+      }
+    }
+  );
+
+  // ----------------------------------------------------------
+  // PROJECT CHANGE EVENT
+  // ----------------------------------------------------------
+
+  document.addEventListener(
+    "mido:state",
+    () => {
+
+      project.updated =
+        Date.now();
+    }
+  );
+
+  // ----------------------------------------------------------
+  // SAVE BEFORE LEAVING
+  // ----------------------------------------------------------
+
+  window.addEventListener(
+    "beforeunload",
+    () => {
+
+      saveProject(false);
+    }
+  );
+
+  // ----------------------------------------------------------
+  // GLOBAL API
+  // ----------------------------------------------------------
+
+  window.MidoBuilder = {
+
+    getProject() {
+      return project;
+    },
+
+    getProjects() {
+      return projects;
+    },
+
+    save() {
+      saveProject(true);
+    },
+
+    render() {
+      render();
+    },
+
+    add(type) {
+      addComponent(type);
+    },
+
+    select(index) {
+
+      if (
+        Number.isInteger(index) &&
+        project.components[index]
+      ) {
+
+        selectedIndex =
+          index;
+
+        render();
+      }
+    },
+
+    deleteSelected() {
+
+      if (
+        selectedIndex === null
+      ) {
+        return;
+      }
+
+      project.components.splice(
+        selectedIndex,
+        1
+      );
+
+      selectedIndex =
+        null;
+
+      saveProject(false);
+
+      render();
+
+      showToast(
+        "Component deleted"
+      );
+    },
+
+    exportJSON() {
+
+      window.MidoExport?.json(
+        project
+      );
+    },
+
+    exportHTML() {
+
+      window.MidoExport?.html(
+        project
+      );
+    }
+
+  };
+
+  // ----------------------------------------------------------
+  // INITIALIZE
+  // ----------------------------------------------------------
+
+  updateProjectTitle();
 
   render();
 
-};
+  // Save the initial project if
+  // it was newly created.
+  saveProject(false);
 
+  console.log(
+    "Mido Builder initialized:",
+    project
+  );
 
-// -------------------------
-// FIRST RENDER
-// -------------------------
+})();
 
-render();
+After pasting it into GitHub, commit the change. Then open "builder.html" from your GitHub Pages/site and test:
+
+1. Add Text
+2. Add Button
+3. Add Image
+4. Add Card
+5. Tap a component → edit its text/size
+6. Delete a component
+7. Drag components around
+8. Press Save
+9. Press Run
+
+Don't create another JS file yet.
