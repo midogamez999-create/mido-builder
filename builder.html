@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Mido Builder — Editor</title>
+
+  <link
+    rel="stylesheet"
+    href="style.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="builder.css"
+  >
+</head>
+
+<body>
+
+  <!-- TOP BAR -->
+
+  <header class="builder-top">
+
+    <button
+      id="back"
+      class="ghost"
+    >
+      ←
+    </button>
+
+    <div class="builder-title">
+      <b id="projectTitle">
+        Untitled Project
+      </b>
+
+      <small>
+        Mido Builder
+      </small>
+    </div>
+
+    <div class="builder-actions">
+
+      <button
+        id="saveProject"
+        class="ghost"
+      >
+        Save
+      </button>
+
+      <button
+        id="runProject"
+        class="primary"
+      >
+        ▶ Run
+      </button>
+
+    </div>
+
+  </header>
+
+
+  <!-- BUILDER -->
+
+  <main class="builder">
+
+    <!-- COMPONENT PANEL -->
+
+    <aside class="toolbox">
+
+      <h3>Components</h3>
+
+      <p class="muted">
+        Add something to your app.
+      </p>
+
+
+      <button
+        class="tool"
+        data-add="text"
+      >
+        <b>Text</b>
+        <small>
+          Add text
+        </small>
+      </button>
+
+
+      <button
+        class="tool"
+        data-add="button"
+      >
+        <b>Button</b>
+        <small>
+          Add an action
+        </small>
+      </button>
+
+
+      <button
+        class="tool"
+        data-add="image"
+      >
+        <b>Image</b>
+        <small>
+          Add an image
+        </small>
+      </button>
+
+
+      <button
+        class="tool"
+        data-add="card"
+      >
+        <b>Card</b>
+        <small>
+          Add a container
+        </small>
+      </button>
+
+    </aside>
+
+
+    <!-- CANVAS -->
+
+    <section class="canvas-area">
+
+      <div class="canvas-label">
+        APP CANVAS
+      </div>
+
+
+      <div
+        id="canvas"
+        class="canvas"
+      >
+
+        <div
+          id="emptyCanvas"
+          class="empty-canvas"
+        >
+
+          <div>
+            ✦
+          </div>
+
+          <h2>
+            Your app starts here
+          </h2>
+
+          <p>
+            Choose a component from
+            the left panel.
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- PROPERTIES -->
+
+    <aside class="properties">
+
+      <h3>
+        Properties
+      </h3>
+
+      <p class="muted">
+        Select a component to edit it.
+      </p>
+
+
+      <div
+        id="propertyPanel"
+        class="property-panel hidden"
+      >
+
+        <label>
+          Text
+
+          <input
+            id="propertyText"
+            type="text"
+          >
+
+        </label>
+
+
+        <label>
+          Size
+
+          <input
+            id="propertySize"
+            type="number"
+            min="8"
+            max="100"
+            value="18"
+          >
+
+        </label>
+
+
+        <button
+          id="deleteComponent"
+          class="danger"
+        >
+          Delete component
+        </button>
+
+      </div>
+
+    </aside>
+
+  </main>
+
+
+  <!-- RUN MODAL -->
+
+  <div
+    id="runModal"
+    class="modal hidden"
+  >
+
+    <div class="run-window">
+
+      <button
+        id="closeRun"
+        class="close"
+      >
+        ×
+      </button>
+
+      <h2>
+        App Preview
+      </h2>
+
+      <div
+        id="previewCanvas"
+        class="preview-canvas"
+      ></div>
+
+    </div>
+
+  </div>
+
+
+  <script src="builder.js"></script>
+
+</body>
+
+</html>
