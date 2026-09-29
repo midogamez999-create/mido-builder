@@ -1,0 +1,282 @@
+body {
+  display: block;
+  overflow: hidden;
+}
+
+.builder-top {
+  height: 64px;
+  background: #10131a;
+  border-bottom: 1px solid #252a36;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 10px 15px;
+}
+
+.builder-title {
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+}
+
+.builder-title small {
+  color: #747d90;
+  font-size: 11px;
+}
+
+.builder-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.builder {
+  height: calc(100vh - 64px);
+  display: grid;
+  grid-template-columns: 220px 1fr 240px;
+  background: #080a0f;
+}
+
+
+/* COMPONENT TOOLBOX */
+
+.toolbox,
+.properties {
+  background: #10131a;
+  padding: 18px;
+  overflow-y: auto;
+}
+
+.toolbox {
+  border-right: 1px solid #252a36;
+}
+
+.properties {
+  border-left: 1px solid #252a36;
+}
+
+.toolbox h3,
+.properties h3 {
+  margin-top: 0;
+}
+
+.tool {
+  width: 100%;
+  border: 1px solid #292f3d;
+  background: #151922;
+  color: #fff;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 9px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tool:hover {
+  background: #1d2330;
+  border-color: #444d61;
+}
+
+.tool b,
+.tool small {
+  display: block;
+}
+
+.tool small {
+  color: #818a9d;
+  margin-top: 4px;
+}
+
+
+/* CANVAS AREA */
+
+.canvas-area {
+  position: relative;
+  overflow: auto;
+  padding: 35px;
+}
+
+.canvas-label {
+  position: absolute;
+  top: 12px;
+  left: 20px;
+  color: #60697a;
+  font-size: 10px;
+  letter-spacing: 2px;
+}
+
+.canvas {
+  width: min(390px, 100%);
+  min-height: 650px;
+  margin: 15px auto;
+  background: #f7f8fa;
+  color: #111;
+  border-radius: 22px;
+  box-shadow: 0 15px 50px #0008;
+  padding: 22px;
+  position: relative;
+}
+
+.empty-canvas {
+  min-height: 600px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+  color: #747b88;
+}
+
+.empty-canvas > div {
+  font-size: 40px;
+}
+
+.empty-canvas h2 {
+  margin: 10px 0 5px;
+  color: #252a32;
+}
+
+.empty-canvas p {
+  margin: 0;
+}
+
+
+/* CANVAS COMPONENTS */
+
+.canvas-component {
+  position: relative;
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.canvas-component:hover {
+  border-color: #aeb6c5;
+}
+
+.canvas-component.selected {
+  border-color: #111;
+  background: #eef0f4;
+}
+
+.canvas-button {
+  display: inline-block;
+  border: 0;
+  border-radius: 9px;
+  padding: 11px 18px;
+  background: #111;
+  color: #fff;
+  font-weight: 700;
+}
+
+.canvas-card {
+  border: 1px solid #d6d9df;
+  border-radius: 12px;
+  padding: 18px;
+  background: #fff;
+}
+
+
+/* PROPERTIES */
+
+.property-panel label {
+  display: block;
+  margin: 18px 0;
+  color: #aeb5c4;
+}
+
+.property-panel input {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  padding: 10px;
+  background: #0a0c11;
+  border: 1px solid #303747;
+  color: #fff;
+  border-radius: 8px;
+}
+
+.danger {
+  width: 100%;
+  border: 1px solid #5d3030;
+  background: #271719;
+  color: #ffb8b8;
+  border-radius: 9px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+
+/* PREVIEW */
+
+.run-window {
+  width: min(430px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  background: #10131a;
+  border: 1px solid #303747;
+  border-radius: 18px;
+  padding: 20px;
+  position: relative;
+}
+
+.preview-canvas {
+  background: #f7f8fa;
+  color: #111;
+  border-radius: 15px;
+  min-height: 500px;
+  padding: 20px;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 800px) {
+
+  .builder {
+    grid-template-columns: 75px 1fr;
+  }
+
+  .properties {
+    display: none;
+  }
+
+  .toolbox {
+    padding: 10px 7px;
+  }
+
+  .toolbox h3,
+  .toolbox .muted {
+    display: none;
+  }
+
+  .tool {
+    text-align: center;
+    padding: 12px 5px;
+  }
+
+  .tool small {
+    display: none;
+  }
+
+  .canvas-area {
+    padding: 25px 10px;
+  }
+
+  .canvas {
+    margin-top: 15px;
+  }
+
+  .builder-title {
+    min-width: 0;
+  }
+
+  .builder-title b {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+}
