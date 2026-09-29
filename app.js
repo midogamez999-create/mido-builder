@@ -13,12 +13,14 @@ const $ = (selector) =>
 // -------------------------
 
 function save() {
+
   localStorage.setItem(
     KEY,
     JSON.stringify(projects)
   );
 
   render();
+
 }
 
 
@@ -27,14 +29,25 @@ function save() {
 // -------------------------
 
 function toast(message) {
-  const element = $("#toast");
 
-  element.textContent = message;
-  element.classList.add("show");
+  const element =
+    $("#toast");
+
+  element.textContent =
+    message;
+
+  element.classList.add(
+    "show"
+  );
 
   setTimeout(() => {
-    element.classList.remove("show");
+
+    element.classList.remove(
+      "show"
+    );
+
   }, 1800);
+
 }
 
 
@@ -42,22 +55,25 @@ function toast(message) {
 // SECURITY
 // -------------------------
 
-function safe(text) {
-  return String(text).replace(
+function safe(value) {
+
+  return String(value).replace(
     /[&<>"']/g,
-    character => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;"
-    }[character])
+    character =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      })[character]
   );
+
 }
 
 
 // -------------------------
-// RENDER PROJECTS
+// RENDER
 // -------------------------
 
 function render() {
@@ -65,73 +81,93 @@ function render() {
   $("#projectsCount").textContent =
     projects.length;
 
+
   $("#componentsCount").textContent =
     projects.reduce(
       (total, project) =>
-        total + (project.components || []).length,
+        total +
+        (project.components || [])
+          .length,
       0
     );
 
 
-  const list = $("#projectList");
+  const list =
+    $("#projectList");
 
 
   if (!projects.length) {
 
     list.innerHTML = `
       <div class="card">
-        <h3>No projects yet</h3>
+
+        <h3>
+          No projects yet
+        </h3>
 
         <p class="muted">
           Create your first project.
         </p>
+
       </div>
     `;
 
     return;
+
   }
 
 
-  list.innerHTML = projects
-    .map(
-      (project, index) => `
-        <div class="project">
+  list.innerHTML =
+    projects
+      .map(
+        (project, index) => `
+          <div class="project">
 
-          <div>
-            <b>${safe(project.name)}</b>
+            <div>
 
-            <br>
+              <b>
+                ${safe(project.name)}
+              </b>
 
-            <small>
-              ${(project.components || []).length}
-              components
-            </small>
+              <br>
+
+              <small>
+                ${(project.components || []).length}
+                components
+              </small>
+
+            </div>
+
+            <button
+              class="ghost"
+              data-open="${index}"
+            >
+              Open
+            </button>
+
           </div>
+        `
+      )
+      .join("");
 
-          <button
-            class="ghost"
-            data-open="${index}"
-          >
-            Open
-          </button>
 
-        </div>
-      `
-    )
-    .join("");
-
+  // OPEN PROJECT
 
   document
-    .querySelectorAll("[data-open]")
+    .querySelectorAll(
+      "[data-open]"
+    )
     .forEach(button => {
 
       button.onclick = () => {
 
-        show("components");
+        const index =
+          button.dataset.open;
 
-        toast(
-          "Project opened"
-        );
+
+        window.location.href =
+          "builder.html?project=" +
+          index;
 
       };
 
@@ -141,31 +177,35 @@ function render() {
 
 
 // -------------------------
-// CHANGE PAGE
+// CHANGE VIEW
 // -------------------------
 
-function show(view) {
+function show(id) {
 
   document
     .querySelectorAll(".view")
-    .forEach(section => {
+    .forEach(view => {
 
-      section.classList.add("hidden");
+      view.classList.add(
+        "hidden"
+      );
 
     });
 
 
-  $("#" + view)
-    .classList.remove("hidden");
+  $("#" + id)
+    .classList.remove(
+      "hidden"
+    );
 
 
   document
     .querySelectorAll(".nav")
-    .forEach(button => {
+    .forEach(nav => {
 
-      button.classList.toggle(
+      nav.classList.toggle(
         "active",
-        button.dataset.view === view
+        nav.dataset.view === id
       );
 
     });
@@ -189,7 +229,7 @@ function show(view) {
 
 
   $("#title").textContent =
-    titles[view];
+    titles[id];
 
 }
 
@@ -222,12 +262,12 @@ function modal(open) {
 
 document
   .querySelectorAll(".nav")
-  .forEach(button => {
+  .forEach(nav => {
 
-    button.onclick = () => {
+    nav.onclick = () => {
 
       show(
-        button.dataset.view
+        nav.dataset.view
       );
 
     };
@@ -236,7 +276,7 @@ document
 
 
 // -------------------------
-// NEW PROJECT BUTTONS
+// NEW PROJECT
 // -------------------------
 
 $("#newProject").onclick =
@@ -296,13 +336,16 @@ $("#create").onclick = () => {
   save();
 
 
-  $("#projectName").value = "";
+  $("#projectName")
+    .value = "";
 
 
   modal(false);
 
 
-  show("projects");
+  show(
+    "projects"
+  );
 
 
   toast(
@@ -317,7 +360,9 @@ $("#create").onclick = () => {
 // -------------------------
 
 document
-  .querySelectorAll("[data-component]")
+  .querySelectorAll(
+    "[data-component]"
+  )
   .forEach(button => {
 
     button.onclick = () => {
@@ -337,20 +382,29 @@ document
         button.dataset.component;
 
 
+      /*
+       * Components are added
+       * to the latest project
+       * from the dashboard.
+       */
+
       projects[
         projects.length - 1
-      ].components.push({
+      ]
+        .components
+        .push({
 
-        type: type
+          type: type
 
-      });
+        });
 
 
       save();
 
 
       toast(
-        type + " added"
+        type +
+        " added"
       );
 
     };
@@ -365,7 +419,7 @@ document
 $("#preview").onclick = () => {
 
   toast(
-    "Preview engine is next"
+    "Open a project to use the builder preview"
   );
 
 };
@@ -380,17 +434,21 @@ $("#saveSettings").onclick = () => {
   const settings = {
 
     name:
-      $("#builderName").value,
+      $("#builderName")
+        .value,
 
     headline:
-      $("#headline").value
+      $("#headline")
+        .value
 
   };
 
 
   localStorage.setItem(
     "mido-builder-settings",
-    JSON.stringify(settings)
+    JSON.stringify(
+      settings
+    )
   );
 
 
@@ -406,7 +464,60 @@ $("#saveSettings").onclick = () => {
 
 
 // -------------------------
+// LOAD SETTINGS
+// -------------------------
+
+function loadSettings() {
+
+  const saved =
+    localStorage.getItem(
+      "mido-builder-settings"
+    );
+
+
+  if (!saved) {
+    return;
+  }
+
+
+  try {
+
+    const settings =
+      JSON.parse(saved);
+
+
+    if (settings.name) {
+
+      $("#builderName")
+        .value =
+        settings.name;
+
+    }
+
+
+    if (settings.headline) {
+
+      $("#headline")
+        .value =
+        settings.headline;
+
+    }
+
+  } catch {
+
+    console.log(
+      "Could not load settings"
+    );
+
+  }
+
+}
+
+
+// -------------------------
 // START
 // -------------------------
+
+loadSettings();
 
 render();
